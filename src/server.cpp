@@ -150,14 +150,18 @@ public:
   }
 
   void parse_path() {
+    std::cout << "Parsing: " << path << '\n';
+
     if (path == "/") {
       response.set_code(HTTP_200_OK);
+      return;
     }
 
-    if (path.find("/echo/") != std::string::npos) {
+    else if (path.find("/echo/") != std::string::npos) {
       std::string text_to_display = path.substr(6);
       response.set_content_and_headers(text_to_display, "Content-type: text/plain");
       response.set_code(HTTP_200_OK);
+      return;
     }
 
     else if (path.find("/files/") != std::string::npos) {
@@ -176,13 +180,17 @@ public:
 
       std::string file_data = file_contents.str();
       response.set_content_and_headers(file_data, "Content-type: application/octet-stream");
+      return;
     }
 
     // 1 is after the first slash: /_ <-
     else if(path.substr(1) == "user-agent") {
       response.set_content_and_headers(user_agent, "Content-type: text/plain");
+      return;
     }
 
+
+    // If ALL else fails - send code 404
     response.set_code(HTTP_404_NF);
 
   }
