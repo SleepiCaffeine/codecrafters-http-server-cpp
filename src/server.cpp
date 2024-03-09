@@ -219,8 +219,8 @@ int main(int argc, char **argv) {
       add_thread(std::move(client_connection));
     }
   }
-  
-  cleanup();
+
+  join_threads();
   close(server_fd);
 
   return 0;
