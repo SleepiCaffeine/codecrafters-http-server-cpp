@@ -27,7 +27,7 @@ void set_directory(int argc, char** argv) {
   // char* -> string -> fs::path -> fs:directory_entry
   if (argc == 3 && argv[1] == "--directory") {
     directory = std::string(argv[2]);
-    directory.erase(str_path.end() - 1); // Removing the final slash
+    directory.erase(directory.end() - 1); // Removing the final slash
   }
 }
 
