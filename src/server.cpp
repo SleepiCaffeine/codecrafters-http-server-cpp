@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <thread>
+#include <atomic>
+#include <mutex>
 #include <vector>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -42,7 +44,7 @@ public:
     code = c;
   }
 
-  std::string create_body() {
+  void create_body() {
     body =  http_ver + " " + code + http_nl;
     body += headers + http_nl;
     body += content;
@@ -180,6 +182,7 @@ int main(int argc, char **argv) {
   std::cout << "Waiting for a client to connect...\n";
   
   // Accepts a TCP connection and saves it to a variable to use later on
+  // LEARN: how do other code examples run?? They all should need the -pthread comile flag to link the necessary library???
   std::vector<std::thread> connections;
   while (true) {
     int client_fd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
