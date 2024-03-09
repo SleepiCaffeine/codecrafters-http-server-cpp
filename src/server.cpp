@@ -86,7 +86,7 @@ private:
 
   void set_headers(const std::string& header_type) {
     headers = header_type + http_nl;
-    headers += "Content-Length: " + std::to_string(str.length()) + http_nl;
+    headers += "Content-Length: " + std::to_string(content_length) + http_nl;
   }
 
 public:
