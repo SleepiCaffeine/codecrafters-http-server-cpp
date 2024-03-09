@@ -158,9 +158,9 @@ public:
       std::cout << "Full path to desired file:  " << full_path_to_file.string() << '\n';
 
       // Exit if it doesn't exist
-      if (!fs::exists(desired_file)) {
+      if (!fs::exists(full_path_to_file)) {
         std::cout << "File does not exist!\n";
-        response.set_code(directory + "/" + full_path_to_file.string());
+        response.set_code(HTTP_404_NF);
         return;
       }
 
