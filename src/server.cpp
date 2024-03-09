@@ -22,7 +22,7 @@ namespace fs = std::filesystem;
 std::string directory;
 
 void set_directory(int argc, char** argv) {
-  if (argc > 1 && argv[1] == "--directory") {
+  if (argv[1] == "--directory") {
     directory = std::string(argv[2]);
     directory.erase(directory.end() - 1); // Removing the final slash
   }
@@ -160,14 +160,16 @@ public:
     else if (path.find("/files/") != std::string::npos) {
       std::string desired_file = path.substr(7);
       std::cout << "Parsing file: " << desired_file << '\n';
-      fs::path full_path_to_file = fs::path(directory) / fs::path(desired_file);
+
+      fs::path full_path_to_file(directory);
+      full_path_to_file /= desired_file;
 
       std::cout << "Full path to desired file:  " << full_path_to_file.string() << '\n';
 
       // Exit if it doesn't exist
       if (!fs::exists(desired_file)) {
         std::cout << "File does not exist!\n";
-        response.set_code(directory + "_/" + full_path_to_file.string());
+        response.set_code(directory + "/" + full_path_to_file.string());
         return;
       }
 
@@ -175,7 +177,7 @@ public:
       response.set_code(HTTP_200_OK);
 
       // Opening file and reading contents
-      std::ifstream file(full_path_to_file.string(), std::ios::binary);
+      std::ifstream file(full_path_to_file);
       std::stringstream file_contents;
       file_contents << file.rdbuf();
       file.close();
