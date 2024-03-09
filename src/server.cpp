@@ -14,6 +14,33 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#include <fstream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+// === DIRECTORY/FILE HANDLING === //
+std::filesystem::path directory;
+std::filesystem::path desired_file;
+
+void set_directory(int argc, char** argv) {
+  // If the flag --directory is set, make the directory variable a directory_entry
+  // of the provided directory path.
+  // char* -> string -> fs::path -> fs:directory_entry
+  if (argc == 3 && argv[1] == "--directory") {
+    auto path = fs::path(std::string(argv[2]));
+
+    if (fs::is_directory(path))
+      directory = path;
+  }
+}
+
+
+
+// === DIRECTORY/FILE HANDLING === //
+
+
+
+// === THREAD HANDLING === //
 // Credit to user https://app.codecrafters.io/users/codyschierbeck
 std::vector<std::thread> threads;
 std::mutex threads_mutex;
@@ -38,6 +65,9 @@ void signalHandler(int signal) {
   running = false;
 }
 
+// === THREAD HANDLING === //
+// === RESPONSE/REQUEST HANDLING === //
+
 constexpr std::string http_nl = "\r\n";
 const std::string HTTP_200_OK = "200 OK";
 const std::string HTTP_404_NF = "404 Not Found";
@@ -47,18 +77,27 @@ class Response {
 private:
   std::string http_ver, code;
   std::string body, headers, content;
-public:
+  unsigned long content_length;
 
-  Response() :  http_ver{"HTTP/1.1"}, code{HTTP_404_NF}, body{""}, headers{""}, content{""} { }
-  
   void set_content(const std::string& str) {
     content = str;
+    content_length = str.length();
   }
 
-  void set_text_headers(const std::string& str) {
-    headers = "Content-Type: text/plain" + http_nl;
+  void set_headers(const std::string& header_type) {
+    headers = header_type + http_nl;
     headers += "Content-Length: " + std::to_string(str.length()) + http_nl;
-    set_content(str);
+  }
+
+public:
+
+  Response() :  http_ver{"HTTP/1.1"}, code{"HTTP_404_NF"}, body{""}, headers{""}, content{""} { }
+  
+  // Highly urged to use only this function, as
+  // using set_content() or set_headers() indepoendantly, may lead to bugs
+  void set_content_and_headers(const std::string& cont, const std::string& header_type) {
+    set_content(cont);
+    set_headers(header_type);
   }
 
   void set_version(const std::string& version) {
@@ -115,20 +154,37 @@ public:
       response.set_code(HTTP_200_OK);
     }
 
-    // Check if Text Request 
-    if (path.length() > 6) {
-      if (path.substr(1, 4) == "echo") {
-        // 6 is after echo/_ <-
-        std::string text_to_display = path.substr(6);
-        response.set_text_headers(text_to_display);
-        response.set_code(HTTP_200_OK);
-      }
-      // 1 is after the first slash: /_ <-
-      if(path.substr(1) == "user-agent") {
-        response.set_text_headers(user_agent);
-      }
-
+    if (path.find("/echo/") != std::string::npos) {
+      std::string text_to_display = path.substr(6);
+      response.set_content_and_headers(text_to_display, "Content-type: text/plain");
+      response.set_code(HTTP_200_OK);
     }
+
+    else if (path.find("/files/") != std::string::npos) {
+      desired_file = fs::path(path.substr(7));
+      fs::path full_path_to_file = directory / desired_file;
+
+      // Exit if it doesn't exist
+      if (!fs::exists(full_path_to_file))
+        return;
+
+      // Opening file
+      std::ifstream file(full_path_to_file, std::ios::binary);
+      std::stringstream file_contents;
+      file_contents << file.rdbuf();
+      file.close();
+
+      std::string file_data = file_contents.str();
+      response.set_content_and_headers(file_data, "Content-type: application/octet-stream");
+    }
+
+    // 1 is after the first slash: /_ <-
+    else if(path.substr(1) == "user-agent") {
+      response.set_content_and_headers(user_agent, "Content-type: text/plain");
+    }
+
+
+
   }
 
   Response get_response() { return response; }
@@ -166,10 +222,12 @@ void handleConnection(int client_fd) {
   close(client_fd);
 }
 
+// === RESPONSE/REQUEST HANDLING === //
 
 
 int main(int argc, char **argv) {
   signal(SIGINT, signalHandler);
+  set_directory(argc, argv);
 
   // Opening up a socket
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
