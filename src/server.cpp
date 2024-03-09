@@ -166,7 +166,7 @@ public:
 
     else if (path.find("/files/") != std::string::npos) {
       std::string desired_file = path.substr(7);
-      std::cout << "Parsing file: " << desired_file.string() << '\n';
+      std::cout << "Parsing file: " << desired_file << '\n';
       fs::path full_path_to_file = fs::path(directory) / fs::path(desired_file);
 
       std::cout << "Full path to desired file:  " << full_path_to_file.string() << '\n';
