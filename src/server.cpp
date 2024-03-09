@@ -20,14 +20,16 @@
 namespace fs = std::filesystem;
 // === DIRECTORY/FILE HANDLING === //
 std::string directory;
-
-void set_directory(int argc, char** argv) {
+void set_directory(int argc, char** argv) inline {
   if (argv[1] == "--directory") {
-    directory = std::string(argv[2]);
-    directory.erase(directory.end() - 1); // Removing the final slash
-  }
+      if (argc < 3) {
+        std::cout << "The filename was not provided\n";
+        exit(7);
+      }
+      directory = std::string(argv[2]);
+      directory.erase(directory.end() - 1); // Removing the final slash
+    }
 }
-
 
 // === DIRECTORY/FILE HANDLING === //
 
