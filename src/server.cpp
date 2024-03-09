@@ -91,7 +91,7 @@ private:
 
 public:
 
-  Response() :  http_ver{"HTTP/1.1"}, code{"HTTP_404_NF"}, body{""}, headers{""}, content{""} { }
+  Response() :  http_ver{"HTTP/1.1"}, code{HTTP_404_NF}, body{""}, headers{""}, content{""}, content_length{0} { }
   
   // Highly urged to use only this function, as
   // using set_content() or set_headers() indepoendantly, may lead to bugs
@@ -183,7 +183,7 @@ public:
       response.set_content_and_headers(user_agent, "Content-type: text/plain");
     }
 
-
+    response.set_code(HTTP_404_NF);
 
   }
 
