@@ -27,13 +27,14 @@ void set_directory(int argc, char** argv) {
   // of the provided directory path.
   // char* -> string -> fs::path -> fs:directory_entry
   if (argc == 3 && argv[1] == "--directory") {
-    auto path = fs::path(std::string(argv[2]));
+    std::string str_path = std::string(argv[2]);
+    str_path.erase(str.path.end() - 1); // Removing the final slash
 
+    auto path = fs::path(str_path);
     if (fs::is_directory(path))
       directory = path;
   }
 }
-
 
 
 // === DIRECTORY/FILE HANDLING === //
@@ -61,7 +62,7 @@ void join_threads() {
   }
 }
 
-void signalHandler(int signal) {
+constexpr void signalHandler(int signal) {
   running = false;
 }
 
@@ -69,8 +70,8 @@ void signalHandler(int signal) {
 // === RESPONSE/REQUEST HANDLING === //
 
 constexpr std::string http_nl = "\r\n";
-const std::string HTTP_200_OK = "200 OK";
-const std::string HTTP_404_NF = "404 Not Found";
+constexpr std::string HTTP_200_OK = "200 OK";
+constexpr std::string HTTP_404_NF = "404 Not Found";
 constexpr int buffer_size = 1024;
 
 class Response {
@@ -231,6 +232,7 @@ void handleConnection(int client_fd) {
   // Checking if the response was sent correctly
   if (response_sent < 0) {
     std::cout << "Error in sending requests: " << errno << '\n';
+    exit(6);
   }
   else if (response_sent < response.length()) {
     std::cout << "Response was sent successfully\n";
