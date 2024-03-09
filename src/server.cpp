@@ -22,10 +22,7 @@ namespace fs = std::filesystem;
 std::string directory;
 
 void set_directory(int argc, char** argv) {
-  // If the flag --directory is set, make the directory variable a directory_entry
-  // of the provided directory path.
-  // char* -> string -> fs::path -> fs:directory_entry
-  if (argc == 3 && argv[1] == "--directory") {
+  if (argc > 1 && argv[1] == "--directory") {
     directory = std::string(argv[2]);
     directory.erase(directory.end() - 1); // Removing the final slash
   }
@@ -168,7 +165,7 @@ public:
       std::cout << "Full path to desired file:  " << full_path_to_file.string() << '\n';
 
       // Exit if it doesn't exist
-      if (!fs::exists(full_path_to_file)) {
+      if (!fs::exists(desired_file)) {
         std::cout << "File does not exist!\n";
         response.set_code(directory + "_/" + full_path_to_file.string());
         return;
