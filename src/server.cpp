@@ -20,16 +20,6 @@
 namespace fs = std::filesystem;
 // === DIRECTORY/FILE HANDLING === //
 std::string directory;
-inline void set_directory(int argc, char** argv) {
-  if (argv[1] == "--directory") {
-      if (argc < 3) {
-        std::cout << "The filename was not provided\n";
-        exit(7);
-      }
-      directory = std::string(argv[2]);
-      directory.erase(directory.end() - 1); // Removing the final slash
-    }
-}
 
 // === DIRECTORY/FILE HANDLING === //
 
@@ -242,7 +232,16 @@ void handleConnection(int client_fd) {
 
 int main(int argc, char **argv) {
   signal(SIGINT, signalHandler);
-  set_directory(argc, argv);
+
+  // Checking within main, because I have no fucking idea what's going on
+  if (argv[1] == "--directory") {
+      if (argc < 3) {
+        std::cout << "The filename was not provided\n";
+        exit(7);
+      }
+      directory = std::string(argv[2]);
+      directory.erase(directory.end() - 1); // Removing the final slash
+  }
 
   // Opening up a socket
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
