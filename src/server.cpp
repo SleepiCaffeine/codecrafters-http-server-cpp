@@ -28,7 +28,7 @@ void set_directory(int argc, char** argv) {
   // char* -> string -> fs::path -> fs:directory_entry
   if (argc == 3 && argv[1] == "--directory") {
     std::string str_path = std::string(argv[2]);
-    str_path.erase(str.path.end() - 1); // Removing the final slash
+    str_path.erase(str_path.end() - 1); // Removing the final slash
 
     auto path = fs::path(str_path);
     if (fs::is_directory(path))
@@ -62,7 +62,7 @@ void join_threads() {
   }
 }
 
-constexpr void signalHandler(int signal) {
+void signalHandler(int signal) {
   running = false;
 }
 
