@@ -232,7 +232,7 @@ void handleConnection(int client_fd, std::string dir) {
 int main(int argc, char **argv) {
   signal(SIGINT, signalHandler);
   
-  std::string directory = ".";
+  std::string directory = "/tmp/data/codecrafters.io/http-server-tester";
   // Checking within main, because I have no fucking idea what's going on
   if (argc == 3 && argv[1] == "--directory") {
       directory = std::string(argv[2]);
