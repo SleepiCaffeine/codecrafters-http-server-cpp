@@ -20,7 +20,6 @@
 namespace fs = std::filesystem;
 // === DIRECTORY/FILE HANDLING === //
 std::filesystem::path directory;
-std::filesystem::path desired_file;
 
 void set_directory(int argc, char** argv) {
   // If the flag --directory is set, make the directory variable a directory_entry
@@ -166,20 +165,21 @@ public:
     }
 
     else if (path.find("/files/") != std::string::npos) {
-      desired_file = fs::path(path.substr(7));
-      std::cout << "Parsing file: " << desired_file << '\n';
+      std::ofstream o("tests.txt");
+      std::string desired_file = path.substr(7);
+      o << "Parsing file: " << desired_file << '\n';
       fs::path full_path_to_file = directory / desired_file;
 
-      std::cout << "Full path to desired file:  " << full_path_to_file << '\n';
+      o << "Full path to desired file:  " << full_path_to_file << '\n';
 
       // Exit if it doesn't exist
       if (!fs::exists(full_path_to_file)) {
-        std::cout << "File does not exist!\n";
+        o << "File does not exist!\n";
         response.set_code(HTTP_404_NF);
         return;
       }
 
-      std::cout << "File found!\n";
+      o << "File found!\n";
       response.set_code(HTTP_200_OK);
 
       // Opening file and reading contents
