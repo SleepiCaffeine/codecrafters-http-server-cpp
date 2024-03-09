@@ -174,7 +174,7 @@ public:
       // Exit if it doesn't exist
       if (!fs::exists(full_path_to_file)) {
         std::cout << "File does not exist!\n";
-        response.set_code(full_path_to_file.string());
+        response.set_code(directory + "_/" + full_path_to_file.string());
         return;
       }
 
