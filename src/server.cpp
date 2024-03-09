@@ -20,7 +20,7 @@
 namespace fs = std::filesystem;
 // === DIRECTORY/FILE HANDLING === //
 std::string directory;
-void set_directory(int argc, char** argv) inline {
+inline void set_directory(int argc, char** argv) {
   if (argv[1] == "--directory") {
       if (argc < 3) {
         std::cout << "The filename was not provided\n";
