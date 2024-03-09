@@ -19,7 +19,7 @@
 
 namespace fs = std::filesystem;
 // === DIRECTORY/FILE HANDLING === //
-std::filesystem::path directory;
+std::string directory;
 
 void set_directory(int argc, char** argv) {
   // If the flag --directory is set, make the directory variable a directory_entry
@@ -31,7 +31,7 @@ void set_directory(int argc, char** argv) {
 
     auto path = fs::path(str_path);
     if (fs::is_directory(path))
-      directory = path;
+      directory = str_path;
   }
 }
 
@@ -165,32 +165,30 @@ public:
     }
 
     else if (path.find("/files/") != std::string::npos) {
-      std::ofstream o("tests.txt");
       std::string desired_file = path.substr(7);
-      o << "Parsing file: " << desired_file << '\n';
-      fs::path full_path_to_file = directory / desired_file;
+      std::cout << "Parsing file: " << desired_file.string() << '\n';
+      fs::path full_path_to_file = fs::path(directory) / fs::path(desired_file);
 
-      o << "Full path to desired file:  " << full_path_to_file << '\n';
+      std::cout << "Full path to desired file:  " << full_path_to_file.string() << '\n';
 
       // Exit if it doesn't exist
       if (!fs::exists(full_path_to_file)) {
-        o << "File does not exist!\n";
+        std::cout << "File does not exist!\n";
         response.set_code(HTTP_404_NF);
         return;
       }
 
-      o << "File found!\n";
+      std::cout << "File found!\n";
       response.set_code(HTTP_200_OK);
 
       // Opening file and reading contents
-      std::ifstream file(full_path_to_file, std::ios::binary);
+      std::ifstream file(full_path_to_file.string(), std::ios::binary);
       std::stringstream file_contents;
       file_contents << file.rdbuf();
       file.close();
 
       // Converting to string and updating the response
-      std::string file_data = file_contents.str();
-      response.set_content_and_headers(file_data, "Content-type: application/octet-stream");
+      response.set_content_and_headers(file_contents.str(), "Content-type: application/octet-stream");
       return;
     }
 
