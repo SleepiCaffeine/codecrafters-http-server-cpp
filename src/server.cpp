@@ -166,18 +166,28 @@ public:
 
     else if (path.find("/files/") != std::string::npos) {
       desired_file = fs::path(path.substr(7));
+      std::cout << "Parsing file: " << desired_file << '\n';
       fs::path full_path_to_file = directory / desired_file;
 
-      // Exit if it doesn't exist
-      if (!fs::exists(full_path_to_file))
-        return;
+      std::cout << "Full path to desired file:  " << full_path_to_file << '\n';
 
-      // Opening file
+      // Exit if it doesn't exist
+      if (!fs::exists(full_path_to_file)) {
+        std::cout << "File does not exist!\n";
+        response.set_code(HTTP_404_NF);
+        return;
+      }
+
+      std::cout << "File found!\n";
+      response.set_code(HTTP_200_OK);
+
+      // Opening file and reading contents
       std::ifstream file(full_path_to_file, std::ios::binary);
       std::stringstream file_contents;
       file_contents << file.rdbuf();
       file.close();
 
+      // Converting to string and updating the response
       std::string file_data = file_contents.str();
       response.set_content_and_headers(file_data, "Content-type: application/octet-stream");
       return;
