@@ -38,7 +38,6 @@ void signalHandler(int signal) {
   running = false;
 }
 
-
 constexpr std::string http_nl = "\r\n";
 const std::string HTTP_200_OK = "200 OK";
 const std::string HTTP_404_NF = "404 Not Found";
