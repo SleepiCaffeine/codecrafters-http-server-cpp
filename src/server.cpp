@@ -19,7 +19,6 @@
 
 namespace fs = std::filesystem;
 // === DIRECTORY/FILE HANDLING === //
-std::string directory;
 
 // === DIRECTORY/FILE HANDLING === //
 
@@ -134,7 +133,7 @@ public:
     parseSelf(std::string(request_cstr, request_size));
   }
 
-  void parse_path() {
+  void parse_path(std::string directory) {
     std::cout << "Parsing: " << path << '\n';
 
     if (path == "/") {
@@ -195,7 +194,7 @@ public:
 };
 
 // Receives Request, parses it and sends out Response
-void handleConnection(int client_fd) {
+void handleConnection(int client_fd, std::string dir) {
   // Buffer to store request
   char rbuffer[buffer_size];
   // If Received request from client isn't valid
@@ -208,7 +207,7 @@ void handleConnection(int client_fd) {
   std::cout << rbuffer << '\n';
 
   Request request(std::string(rbuffer, buffer_size));
-  request.parse_path();
+  request.parse_path(dir);
   std::string response = request.get_response().get_body();
 
   // send response to client
@@ -232,15 +231,11 @@ void handleConnection(int client_fd) {
 
 int main(int argc, char **argv) {
   signal(SIGINT, signalHandler);
-
+  
+  std::string directory = ".";
   // Checking within main, because I have no fucking idea what's going on
-  if (argv[1] == "--directory") {
-      if (argc < 3) {
-        std::cout << "The filename was not provided\n";
-        exit(7);
-      }
+  if (argc == 3 && argv[1] == "--directory") {
       directory = std::string(argv[2]);
-      directory.erase(directory.end() - 1); // Removing the final slash
   }
 
   // Opening up a socket
@@ -289,7 +284,7 @@ int main(int argc, char **argv) {
     if (client_fd >= 0) {
       std::cout << "Client connected\n";
       // Create Thread
-      std::thread client_connection(handleConnection, client_fd);
+      std::thread client_connection(handleConnection, client_fd, directory);
       // Move the thread safely
       add_thread(std::move(client_connection));
     }
