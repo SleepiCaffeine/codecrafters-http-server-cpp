@@ -160,7 +160,7 @@ public:
       // Exit if it doesn't exist
       if (!fs::exists(full_path_to_file)) {
         std::cout << "File does not exist!\n";
-        response.set_code(HTTP_404_NF);
+        response.set_code(full_path_to_file.string());
         return;
       }
 
