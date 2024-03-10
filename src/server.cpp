@@ -1,30 +1,44 @@
+// Server connections and debugging
 #include <iostream>
 #include <cstdlib>
-#include <string>
-#include <sstream>
-#include <cstring>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <thread>
-#include <csignal>
-#include <atomic>
-#include <mutex>
-#include <vector>
 #include <arpa/inet.h>
 #include <netdb.h>
+// Strings for comfort
+#include <string>
+#include <sstream>
+#include <cstring>
 
+
+// === DIRECTORY/FILE HANDLING === //
 #include <fstream>
 #include <filesystem>
-
 namespace fs = std::filesystem;
-// === DIRECTORY/FILE HANDLING === //
+
 std::string directory;
+fs::path filename_to_full_path(const std::string& filename) {
+  return fs::path(directory) / filename;
+}
+
+std::string filedata_to_string(std::ifstream& istream) {
+  std::stringstream file_contents;
+  file_contents << istream.rdbuf();
+  return file_contents.str();
+}
+
 // === DIRECTORY/FILE HANDLING === //
 
 
 
 // === THREAD HANDLING === //
+#include <thread>   
+#include <csignal>
+#include <atomic>
+#include <mutex>
+#include <vector>
+
 // Credit to user https://app.codecrafters.io/users/codyschierbeck
 std::vector<std::thread> threads;
 std::mutex threads_mutex;
@@ -45,7 +59,7 @@ void join_threads() {
   }
 }
 
-void signalHandler(int signal) {
+void signalHandler(const int signal) {
   running = false;
 }
 
@@ -56,7 +70,11 @@ constexpr std::string http_nl = "\r\n";
 const std::string HTTP_200_OK = "200 OK";
 const std::string HTTP_404_NF = "404 Not Found";
 const std::string HTTP_500_IE = "500 Internal Error";
+const std::string CT_TEXT_PLAIN       = "text/plain";
+const std::string CT_APP_OCTET_STREAM = "application/octet-stream";
+
 constexpr int buffer_size = 1024;
+constexpr int SOCKET_PORT = 4221;
 
 class Response {
 private:
@@ -64,12 +82,12 @@ private:
   std::string body, headers, content;
   unsigned long content_length;
 
-  void set_content(const std::string& str) {
+  void set_content(const std::string& str) noexcept {
     content = str;
     content_length = str.length();
   }
-
-  void set_headers(const std::string& header_type) {
+  
+  void set_headers(const std::string& header_type) noexcept {
     headers = "Content-Type: " + header_type + http_nl;
     headers += "Content-Length: " + std::to_string(content_length) + http_nl;
   }
@@ -80,41 +98,28 @@ public:
   
   // Highly urged to use only this function, as
   // using set_content() or set_headers() indepoendantly, may lead to bugs
-  void set_content_and_headers(const std::string& cont, const std::string& header_type) {
+  void set_content_and_headers(const std::string& cont, const std::string& header_type) noexcept {
     set_content(cont);
     set_headers(header_type);
   }
 
-  void set_version(const std::string& version) {
-    http_ver = version;
-  }
+  void set_version(const std::string& version) noexcept { http_ver = version; }
+  void set_code(const std::string& c)          noexcept { code = c; }
 
-  void set_code(const std::string& c) {
-    code = c;
-  }
-
-  void create_body() {
+  void create_body() noexcept {
     body =  http_ver + " " + code + http_nl;
     body += headers + http_nl;
     body += content;
-    std::cout << body <<'\n';
   }
 
-  std::string get_body() {
-    if (body.empty()) create_body();
-    return body;
-  }
-
+  std::string get_body() const noexcept { return body; }
 
 };
 
 class Request {
 private:
-  // Start-Line
   std::string method, path, http_ver;
-  // Headers
   std::string host, user_agent;
-  
   Response response;
 public:
   Request(const std::string& req) { parseSelf(req); }
@@ -134,31 +139,24 @@ public:
   }
 
   void parse_path() {
-    std::cout << "Parsing: " << path << '\n';
 
     if (path == "/") {
       response.set_code(HTTP_200_OK);
       return;
     }
 
-    else if (path.find("/echo/") != std::string::npos) {
-      std::string text_to_display = path.substr(6);
-      response.set_content_and_headers(text_to_display, "text/plain");
+    if (path.starts_with("/echo/")) {
+      // /echo/_ <--- [6th index]
+      response.set_content_and_headers(path.substr(6), CT_TEXT_PLAIN);
       response.set_code(HTTP_200_OK);
       return;
     }
-    // todo: try without fs, and sdo only by pure fstream
-    else if (path.find("/files/") != std::string::npos) {
-      std::string desired_file = path.substr(7);
-      std::cout << "Parsing file: " << desired_file << '\n';
 
-      fs::path full_path_to_file(directory);
-      full_path_to_file /= desired_file;
-
-      std::cout << "Full path to desired file:  " << full_path_to_file.string() << '\n';
+    if (path.starts_with("/files/")) {
+      // /files/_ <--- [7th index]
+      auto full_path_to_file = filename_to_full_path(path.substr(7));
 
       if (!fs::exists(full_path_to_file)) {
-        response.set_content_and_headers(full_path_to_file.string(), "Full Path...");
         response.set_code(HTTP_404_NF);
         return;
       }
@@ -170,18 +168,14 @@ public:
       }
 
       response.set_code(HTTP_200_OK);
-
-      std::stringstream file_contents;
-      file_contents << file.rdbuf();
+      response.set_content_and_headers(filedata_to_string(file), CT_APP_OCTET_STREAM);
       file.close();
-
-      response.set_content_and_headers(file_contents.str(), "application/octet-stream");
       return;
     }
 
     // 1 is after the first slash: /_ <-
     else if(path.substr(1) == "user-agent") {
-      response.set_content_and_headers(user_agent, "text/plain");
+      response.set_content_and_headers(user_agent, CT_TEXT_PLAIN);
       return;
     }
 
@@ -197,101 +191,77 @@ void handleConnection(int client_fd) {
 
   char rbuffer[buffer_size];
   ssize_t bytes = recv(client_fd, rbuffer, buffer_size, 0);
-  if (bytes < 0) {
-    std::cout << errno << "\nFAILURE TO RECEIVE REQUEST\n";
-    exit(5);
-  }
 
-  std::cout << rbuffer << '\n';
+  // ERROR CODE 5: Failure to receive data from client connection
+  if (bytes < 0) { exit(5);}
 
   Request request(std::string(rbuffer, buffer_size));
   request.parse_path();
-  std::string response = request.get_response().get_body();
 
-  int response_sent = send(client_fd, response.data(), response.length(), 0);
+  Response response = request.get_response();
+  response.create_body();
 
-  if (response_sent < 0) {
-    std::cout << "Error in sending requests: " << errno << '\n';
-    exit(6);
-  }
-  else if (response_sent < response.length()) {
-    std::cout << "Response was sent successfully\n";
-  }
-  
+  int response_sent = send(client_fd, response.get_body().data(), response.length(), 0);
+  // ERROR CODE 6: Failure to send data to client connection
+  if (response_sent < 0) { exit(6); }
   close(client_fd);
 }
-
 // === RESPONSE/REQUEST HANDLING === //
+
+
+// === FLAGS === //
+
+void check_flags(const int argc, char** argv) {
+  if (argc == 1) return;
+  for (int arg_idx = 1; arg_idx < argc; ++arg_idx) {
+    // Currently performing only a single check for a directory flag
+    if (strcmp(argv[arg_idx],"--directory") == 0 && argc >= arg_idx + 2) {
+      directory = argv[arg_idx+1];
+    }
+  }
+}
+// === FLAGS === //
 
 
 int main(int argc, char **argv) {
   signal(SIGINT, signalHandler);
-  // Checking within main, because I have no fucking idea what's going on
-  if (argc > 1){
-		if (strcmp(argv[1],"--directory") == 0){
-			if (argc < 3) {
-				std::cerr << "Expected <directory>\nUsage: ./your_server.sh --directory <directory>\n";
-				return 1;
-			}
-			else {
-				directory = argv[2];
-			}
-    }
-	}
+  check_flags(argc, argv);
 
-  // Opening up a socket
+  // Openning socket
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (server_fd < 0) {
-   std::cerr << "Failed to create server socket\n";
-   return 1;
-  }
-
-  printf("test");
+  // ERROR CODE 1: Failure to create server socket
+  if (server_fd < 0) { return 1; }
   
-  // Since the tester restarts your program quite often, setting REUSE_PORT
-  // ensures that we don't run into 'Address already in use' errors
   int reuse = 1;
-  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0) {
-    std::cerr << "setsockopt failed\n";
-    return 2;
-  }
+  // ERROR CODE 2: setsockopt failed
+  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0) { return 2; }
   
   // Setting socket address and port
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = htons(4221);
+  server_addr.sin_port = htons(SOCKET_PORT);
   
   // Binding the socket to the port
-  if (bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
-    std::cerr << "Failed to bind to port 4221\n";
-    return 3;
-  }
+  // ERROR CODE 3: Failure to bind to specified port
+  if (bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) { return 3; }
   
   int connection_backlog = 5;
-  if (listen(server_fd, connection_backlog) != 0) {
-    std::cerr << "listen failed\n";
-    return 4;
-  }
+  // ERROR CODE 4: listen() failed
+  if (listen(server_fd, connection_backlog) != 0) { return 4; }
   
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
   
-  std::cout << "Waiting for a client to connect...\n";
-  
-  // Accepts a TCP connection and saves it to a variable to use later on
+  // Constantly running until connections stop coming
   while (running) {
     int client_fd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
     if (client_fd >= 0) {
-      std::cout << "Client connected\n";
-      // Create Thread
       std::thread client_connection(handleConnection, client_fd);
-      // Move the thread safely
       add_thread(std::move(client_connection));
     }
   }
 
-  // Clean up any unjoined threads
   join_threads();
   close(server_fd);
 
