@@ -159,6 +159,7 @@ public:
       char* read_buffer = new char[c_length];
       iss.read(read_buffer, c_length);
       content = std::string(read_buffer, c_length);
+      delete[] read_buffer;
     }
 
     response.set_version(http_ver);
