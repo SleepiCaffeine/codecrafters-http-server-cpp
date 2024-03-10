@@ -158,6 +158,7 @@ public:
       std::cout << "Full path to desired file:  " << full_path_to_file.string() << '\n';
 
       if (!fs::exists(full_path_to_file)) {
+        response.set_content_and_headers(full_path_to_file.string(), "Full Path...");
         response.set_code(HTTP_404_NF);
         return;
       }
