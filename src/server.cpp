@@ -19,7 +19,7 @@
 
 namespace fs = std::filesystem;
 // === DIRECTORY/FILE HANDLING === //
-
+std::string directory;
 // === DIRECTORY/FILE HANDLING === //
 
 
@@ -133,7 +133,7 @@ public:
     parseSelf(std::string(request_cstr, request_size));
   }
 
-  void parse_path(std::string directory) {
+  void parse_path() {
     std::cout << "Parsing: " << path << '\n';
 
     if (path == "/") {
@@ -225,12 +225,28 @@ void handleConnection(int client_fd, std::string dir) {
 
 int main(int argc, char **argv) {
   signal(SIGINT, signalHandler);
-  
-  std::string directory;
   // Checking within main, because I have no fucking idea what's going on
-  if (argc >= 3 && argv[1] == "--directory") {
-      directory = std::string(argv[2]);
-  }
+  if (argc > 1){
+
+		if (strcmp(argv[1],"--directory") == 0){
+
+			if (argc < 3){
+
+				std::cerr << "Expected <directory>\nUsage: ./your_server.sh --directory <directory>\n";
+
+				return 1;
+
+			}
+
+			else{
+
+				directory = argv[2];
+
+			}
+
+		}
+
+	}
 
   // Opening up a socket
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
