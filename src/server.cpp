@@ -153,7 +153,7 @@ public:
       iss >> filler >> c_length;  // Content-Length
       iss >> filler >> filler; //  Accept-Encoding: gzip
       char* read_buffer = new char[c_length];
-      iss.getline(read_buffer, c_length);
+      iss.read(read_buffer, c_length);
       content = std::string(read_buffer, c_length);
     }
 
