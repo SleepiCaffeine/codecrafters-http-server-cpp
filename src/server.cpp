@@ -150,6 +150,7 @@ public:
       iss >> filler >> filler;  // Host
       iss >> filler >> filler;  // Content-Type
       iss >> filler >> filler;  // Content-Length
+      iss >> filler >> filler; //  Accept-Encoding: gzip
       iss >> content;
     }
 
@@ -224,7 +225,7 @@ public:
         }
     }
   }
-  
+
 
   Response get_response() { return response; }
 };
