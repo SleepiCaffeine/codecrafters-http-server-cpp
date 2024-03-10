@@ -148,10 +148,14 @@ public:
 
     if (method == HTTPMethod::POST) {
       unsigned int c_length = 0;
-      iss >> filler >> filler;  // Host
-      iss >> filler >> filler;  // Content-Type
+      iss >> filler >> filler;    // Host
+      iss >> filler >> filler;    // Content-Type
       iss >> filler >> c_length;  // Content-Length
-      iss >> filler >> filler; //  Accept-Encoding: gzip
+      iss >> filler >> filler;    //  Accept-Encoding: gzip
+      // Reading using the '>>' overload leaves some characters behind
+      // As such there needs to be a compensation of 4 characters: "\r\n\r\n"
+      iss.ignore(4);             
+
       char* read_buffer = new char[c_length];
       iss.read(read_buffer, c_length);
       content = std::string(read_buffer, c_length);
