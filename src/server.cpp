@@ -201,7 +201,7 @@ void handleConnection(int client_fd) {
   Response response = request.get_response();
   response.create_body();
 
-  int response_sent = send(client_fd, response.get_body().data(), response.length(), 0);
+  int response_sent = send(client_fd, response.get_body().data(), response.get_body().length(), 0);
   // ERROR CODE 6: Failure to send data to client connection
   if (response_sent < 0) { exit(6); }
   close(client_fd);
