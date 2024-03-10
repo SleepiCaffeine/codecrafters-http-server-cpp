@@ -152,7 +152,9 @@ public:
       iss >> filler >> filler;  // Content-Type
       iss >> filler >> c_length;  // Content-Length
       iss >> filler >> filler; //  Accept-Encoding: gzip
-      iss.getline(content);
+      char* read_buffer = new char[c_length];
+      iss.getline(read_buffer, c_length);
+      content = std::string(read_buffer, c_length);
     }
 
     response.set_version(http_ver);
