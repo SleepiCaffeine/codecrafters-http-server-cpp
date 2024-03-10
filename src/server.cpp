@@ -68,10 +68,13 @@ void signalHandler(const int signal) {
 
 constexpr std::string http_nl = "\r\n";
 const std::string HTTP_200_OK = "200 OK";
+const std::string HTTP_201_CR = "201 Created";
 const std::string HTTP_404_NF = "404 Not Found";
 const std::string HTTP_500_IE = "500 Internal Error";
 const std::string CT_TEXT_PLAIN       = "text/plain";
 const std::string CT_APP_OCTET_STREAM = "application/octet-stream";
+
+enum HTTPMethod {GET, POST, DELETE, HEAD, PUT, CONNECT, TRACE, OPTIONS, PATCH};
 
 constexpr int buffer_size = 1024;
 constexpr int SOCKET_PORT = 4221;
@@ -118,18 +121,37 @@ public:
 
 class Request {
 private:
-  std::string method, path, http_ver;
+  HTTPMethod method;
+  std::string path, http_ver;
   std::string host, user_agent;
+
+  std::string content;
+
   Response response;
 public:
   Request(const std::string& req) { parseSelf(req); }
 
   void parseSelf(const std::string& request) {
     std::istringstream iss(request);
-    std::string filler;
-    iss >> method >> path >> http_ver;
-    iss >> filler >> host;
-    iss >> filler >> user_agent;
+    std::string method_str, filler;
+    iss >> method_str >> path >> http_ver;
+
+    if      (method_str == "GET")  method = HTTPMethod::GET;
+    else if (method_str == "POST") method = HTTPMethod::POST;
+    else                           method = HTTPMethod::CONNECT;
+
+    if (method == HTTPMethod::GET) {
+      iss >> filler >> host;
+      iss >> filler >> user_agent;
+    }
+
+
+    if (method == HTTPMethod::POST) {
+      iss >> filler >> filler;  // Host
+      iss >> filler >> filler;  // Content-Type
+      iss >> filler >> filler;  // Content-Length
+      iss >> content;
+    }
 
     response.set_version(http_ver);
   }
@@ -139,48 +161,70 @@ public:
   }
 
   void parse_path() {
+    
+    switch (method) {
+      case GET:
+        if (path == "/") {
+          response.set_code(HTTP_200_OK);
+          return;
+        }
 
-    if (path == "/") {
-      response.set_code(HTTP_200_OK);
-      return;
-    }
+        if (path.starts_with("/echo/")) {
+          // /echo/_ <--- [6th index]
+          response.set_content_and_headers(path.substr(6), CT_TEXT_PLAIN);
+          response.set_code(HTTP_200_OK);
+          return;
+        }
 
-    if (path.starts_with("/echo/")) {
-      // /echo/_ <--- [6th index]
-      response.set_content_and_headers(path.substr(6), CT_TEXT_PLAIN);
-      response.set_code(HTTP_200_OK);
-      return;
-    }
+        if (path.starts_with("/files/")) {
+          // /files/_ <--- [7th index]
+          auto full_path_to_file = filename_to_full_path(path.substr(7));
 
-    if (path.starts_with("/files/")) {
-      // /files/_ <--- [7th index]
-      auto full_path_to_file = filename_to_full_path(path.substr(7));
+          if (!fs::exists(full_path_to_file)) {
+            response.set_code(HTTP_404_NF);
+            return;
+          }
 
-      if (!fs::exists(full_path_to_file)) {
+          std::ifstream file(full_path_to_file);
+          if (!file.is_open()) {
+            response.set_code(HTTP_500_IE);
+            return;
+          }
+
+          response.set_code(HTTP_200_OK);
+          response.set_content_and_headers(filedata_to_string(file), CT_APP_OCTET_STREAM);
+          file.close();
+          return;
+        }
+
+        // 1 is after the first slash: /_ <-
+        else if(path.substr(1) == "user-agent") {
+          response.set_content_and_headers(user_agent, CT_TEXT_PLAIN);
+          return;
+        }
+
         response.set_code(HTTP_404_NF);
-        return;
-      }
+      break;
 
-      std::ifstream file(full_path_to_file);
-      if (!file.is_open()) {
-        response.set_code(HTTP_500_IE);
-        return;
-      }
+      case POST:
 
-      response.set_code(HTTP_200_OK);
-      response.set_content_and_headers(filedata_to_string(file), CT_APP_OCTET_STREAM);
-      file.close();
-      return;
+        if (path.starts_with("/files/")) {
+          // /files/_ <--- [7th index]
+          auto full_path_to_file = filename_to_full_path(path.substr(7));
+          std::ofstream file(full_path_to_file);
+          if (!file.is_open()) {
+            response.set_code(HTTP_500_IE);
+            return;
+          }
+
+          file << content;
+          response.set_code(HTTP_201_CR);
+          file.close();
+          return;
+        }
     }
-
-    // 1 is after the first slash: /_ <-
-    else if(path.substr(1) == "user-agent") {
-      response.set_content_and_headers(user_agent, CT_TEXT_PLAIN);
-      return;
-    }
-
-    response.set_code(HTTP_404_NF);
   }
+  
 
   Response get_response() { return response; }
 };
