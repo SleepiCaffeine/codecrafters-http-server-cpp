@@ -53,9 +53,9 @@ void signalHandler(int signal) {
 // === RESPONSE/REQUEST HANDLING === //
 
 constexpr std::string http_nl = "\r\n";
-constexpr std::string HTTP_200_OK = "200 OK";
-constexpr std::string HTTP_404_NF = "404 Not Found";
-constexpr std::string HTTP_500_IE = "500 Internal Error";
+const std::string HTTP_200_OK = "200 OK";
+const std::string HTTP_404_NF = "404 Not Found";
+const std::string HTTP_500_IE = "500 Internal Error";
 constexpr int buffer_size = 1024;
 
 class Response {
