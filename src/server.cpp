@@ -191,7 +191,7 @@ public:
   Response get_response() { return response; }
 };
 
-std::string directory;
+
 // Receives Request, parses it and sends out Response
 void handleConnection(int client_fd) {
 
