@@ -147,11 +147,12 @@ public:
 
 
     if (method == HTTPMethod::POST) {
+      unsigned int c_length = 0;
       iss >> filler >> filler;  // Host
       iss >> filler >> filler;  // Content-Type
-      iss >> filler >> filler;  // Content-Length
+      iss >> filler >> c_length;  // Content-Length
       iss >> filler >> filler; //  Accept-Encoding: gzip
-      iss >> content;
+      iss.getline(content);
     }
 
     response.set_version(http_ver);
