@@ -191,8 +191,9 @@ public:
   Response get_response() { return response; }
 };
 
+std::string directory;
 // Receives Request, parses it and sends out Response
-void handleConnection(int client_fd, std::string dir) {
+void handleConnection(int client_fd) {
 
   char rbuffer[buffer_size];
   ssize_t bytes = recv(client_fd, rbuffer, buffer_size, 0);
@@ -204,7 +205,7 @@ void handleConnection(int client_fd, std::string dir) {
   std::cout << rbuffer << '\n';
 
   Request request(std::string(rbuffer, buffer_size));
-  request.parse_path(dir);
+  request.parse_path();
   std::string response = request.get_response().get_body();
 
   int response_sent = send(client_fd, response.data(), response.length(), 0);
@@ -227,25 +228,15 @@ int main(int argc, char **argv) {
   signal(SIGINT, signalHandler);
   // Checking within main, because I have no fucking idea what's going on
   if (argc > 1){
-
 		if (strcmp(argv[1],"--directory") == 0){
-
-			if (argc < 3){
-
+			if (argc < 3) {
 				std::cerr << "Expected <directory>\nUsage: ./your_server.sh --directory <directory>\n";
-
 				return 1;
-
 			}
-
-			else{
-
+			else {
 				directory = argv[2];
-
 			}
-
-		}
-
+    }
 	}
 
   // Opening up a socket
@@ -294,7 +285,7 @@ int main(int argc, char **argv) {
     if (client_fd >= 0) {
       std::cout << "Client connected\n";
       // Create Thread
-      std::thread client_connection(handleConnection, client_fd, directory);
+      std::thread client_connection(handleConnection, client_fd);
       // Move the thread safely
       add_thread(std::move(client_connection));
     }
